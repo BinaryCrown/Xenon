@@ -1,4 +1,7 @@
-string = input("XOB program: ").replace(" ","")
+inp = input("XOB file to convert to XEN: ")
+fio = open(inp, "rt")
+string = fio.read()
+fio.close()
 n = len(string)+3
 if n % 8 != 0:
     k = 8-(n%8)
@@ -13,4 +16,7 @@ for e in chunks:
         hx = "0" + hx
     hx = bytes.fromhex(hx).decode("latin-1")
     out.append(hx)
-print("".join(out))
+path = input("Place to store XEN: ")
+fio = open(path, "wt")
+fio.write("".join(out))
+fio.close()
