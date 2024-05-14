@@ -7,7 +7,10 @@ if n % 8 != 0:
     k = 8-(n%8)
 else:
     k = 0
-string = bin(k)[2:] + string + "0"*k
+pbit = bin(k)[2:]
+if len(pbit) < 3:
+    pbit = "0"*(3-len(pbit)) + pbit
+string = pbit + string + "0"*k
 chunks = [string[8*n:8*n+8] for n in range(len(string)//8)]
 out = []
 for e in chunks:

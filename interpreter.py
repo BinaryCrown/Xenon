@@ -20,6 +20,7 @@ for e in range(0,len(prog),2):
     n2 = "0"*(4-len(n2)) + n2
   bi.append(n1 + n2)
 bi = "".join(bi)
+print(bi)
 # Unpad it
 padam = bi[:3]
 padam = int(padam,2)
