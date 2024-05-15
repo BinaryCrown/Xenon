@@ -2,12 +2,13 @@ import sys
 
 # Get program
 inp = input("XEN file to run: ")
-fio = open(inp, "rb")
+fio = open(inp, "rt")
 prog = fio.read()
 fio.close()
 # Convert into binary
-print(f"Program is: {prog.decode('latin-1')}")
-prog = prog.hex()
+print(f"Program is: {prog}")
+prog = prog.encode("latin-1").hex()
+print(prog)
 bi = []
 for e in range(0,len(prog),2):
   n1 = int(prog[e],16)
@@ -29,7 +30,6 @@ try:
 except Exception:
   print("Invalid padding.")
   sys.exit()
-print(bi)
 # Xenon constants
 nio = ["00100", "01101", "10100"] # Opcodes without extra arguments
 oio = ["00101", "01010", "01011", "01100", "10000", "10001", "10010", "10011", "10101", "10100"] # Opcodes with one argument
@@ -99,5 +99,7 @@ def lexer(bincode):
   else:
     return lexres + lexer(bincode[stopindex:])
 
-lexed = lexer(bi)
-print(lexed)
+# lexed = lexer(bi)
+# print(lexed)
+
+print(bi)
