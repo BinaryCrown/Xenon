@@ -7,7 +7,7 @@ prog = fio.read()
 fio.close()
 # Convert into binary
 print(f"Program is: {prog}")
-prog = prog.encode("latin-1").hex()
+prog = prog.encode("latin-1").hex()#beep beep beep
 print(prog)
 bi = []
 for e in range(0,len(prog),2):
@@ -16,7 +16,7 @@ for e in range(0,len(prog),2):
   n1 = bin(n1)[2:]
   n2 = bin(n2)[2:]
   if len(n1) < 4:
-    n1 = "0"*(4-len(n1)) + n1
+    n1 = "0"*(4-len(n1)) + n1 # strings  can be multiplied?
   if len(n2) < 4:
     n2 = "0"*(4-len(n2)) + n2
   bi.append(n1 + n2)

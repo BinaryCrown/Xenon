@@ -1,3 +1,5 @@
+import sscfcmp
+
 inp = input("XOB file to convert to XEN: ")
 fio = open(inp, "rt")
 string = fio.read()
@@ -17,7 +19,7 @@ for e in chunks:
     hx = hex(int(e,2))[2:]
     if len(hx) < 2:
         hx = "0"*(2-len(hx)) + hx
-    hx = bytes.fromhex(hx).decode("latin-1")
+    hx = bytes.fromhex(hx).decode("sscfcmp")
     out.append(hx)
 path = input("Place to store XEN: ")
 fio = open(path, "wt")
