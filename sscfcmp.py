@@ -72,7 +72,9 @@ encoding_map = {
     0xFF: 0x2564
 }
 
-def sscfcmp_encode(x: str) -> bytes: # Decodes a character with CP437
+decoding_map = {v: k for k, v in encoding_map.items()}
+
+def sscfcmp_encode(x: str) -> bytes: # Decodes a character with SSCfCMP
     h = ord(x)
     if h in encoding_map.values():
         res = hex(decoding_map[h])[2:]
@@ -83,17 +85,16 @@ def sscfcmp_encode(x: str) -> bytes: # Decodes a character with CP437
         try:
             res = x.encode("cp500")
         except:
-            print("Invalid character to encode.")
-            res = None
+            raise UnicodeEncodeError
     return res
 
-def sscfcmp_decode(h: int) -> str: # Encodes a byte with a hybrid of CP437 and CP500
+def sscfcmp_decode(h: int) -> str: # Encodes a byte with SSCfCMP
     if h < 66 or h == 202 or h == 255:
         res = chr(encoding_map[h])
     else:
         h = hex(h)[2:]
         if len(h) > 2:
-            print("Invalid character to decode.")
+            raise UnicodeDecodeError
         elif len(h) < 2:
             h = "0"*(2-len(h))+h
         h = bytes.fromhex(h)

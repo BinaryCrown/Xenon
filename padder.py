@@ -19,6 +19,7 @@ for e in chunks:
     hx = hex(int(e,2))[2:]
     if len(hx) < 2:
         hx = "0"*(2-len(hx)) + hx
+    print(hx)
     hx = bytes.fromhex(hx).decode("sscfcmp")
     out.append(hx)
 path = input("Place to store XEN: ")
