@@ -78,7 +78,7 @@ def argscan(bincode, sindex, opcode): # Checks if the argument at sindex is a li
     return registerscan(bincode, sindex, opcode)
 
 def lexer(bincode):
-  global opcodes, nio
+  global opcodes, nio, oio, tio, thio
   stopindex = 0
   if len(bincode) < 5:
     print("Program invalid or too short.")
@@ -92,23 +92,18 @@ def lexer(bincode):
     stopindex = 5
   else:
     # Get the arguments
-    farg = argscan(bincode, 5, opcode)
-    if type(farg[0]) == str:
+    if opcode in oio:
       stopindex = farg[1]
       lexres = [[int(opcode,2),farg[0]]]
-    else:
-      if opcode in oio:
-        stopindex = farg[1]
-        lexres = [[int(opcode,2),farg[0]]]
-      elif opcode in tio:
-        scount = argscan(bincode, farg[1], opcode)
-        stopindex = scount[1]
-        lexres = [[int(opcode,2),farg[0],scount[0]]]
-      elif opcode in thio:
-        scount = argscan(bincode, farg[1], opcode)
-        tcount = argscan(bincode, scount[1], opcode)
-        stopindex = tcount[1]
-        lexres = [[int(opcode,2),farg[0],scount[0],tcount[0]]]
+    elif opcode in tio:
+      scount = argscan(bincode, farg[1], opcode)
+      stopindex = scount[1]
+      lexres = [[int(opcode,2),farg[0],scount[0]]]
+    elif opcode in thio:
+      scount = argscan(bincode, farg[1], opcode)
+      tcount = argscan(bincode, scount[1], opcode)
+      stopindex = tcount[1]
+      lexres = [[int(opcode,2),farg[0],scount[0],tcount[0]]]
   if len(bincode[stopindex:]) < 5:
     return lexres
   else:
@@ -179,7 +174,8 @@ intstate = {e: "" for e in table}
 # ---------------------
 
 def p2c(x): # Parse two's complement
-  sign = x[0]
+  if len(x) == 0 or (len(x) == 1 and x[0] == "0"): return 0
+  elif len(x) == 1 and x[0] == "1": return -1
   return int(x[1:],2) - int(x[0])*2**(len(x)-1)
 
 def g2c(n): # Generate two's complement
@@ -211,9 +207,34 @@ for i in lexed:
       res = g2c(addend + summand)
     intstate[i[1]] = res
   elif i[0] == 1: # AND
-    pass
+    andend = intstate[i[1]]
+    if type(i[2]) is int:
+      andand = intstate[i[2]]
+    else:
+      andand = i[2]
+    if len(andend) < len(andand):
+      andend = "0"*(len(andand) - len(andend)) + andend
+    elif len(andand) < len(andend):
+      andand = "0"*(len(andend) - len(andand)) + andand
+    res = "".join("1" if x == "1" and y == "1" else "0" for x, y in zip(andand,andend))
+    intstate[i[1]] = res
   elif i[0] == 2: # Comparison
-    pass
+    if type(i[1]) is int:
+      comparand = intstate[i[1]]
+    else:
+      comparand = i[1]
+    if type(i[2]) is int:
+      comparor = intstate[i[2]]
+    else:
+      comparor = i[2]
+    if comparand == "":
+      comparand = "0"
+    if comparor == "":
+      comparor = "0"
+    comparand = p2c(comparand)
+    comparor = p2c(comparor)
+    bo = str(int(comparand > comparor))
+    intstate[i[3]] = bo
   elif i[0] == 3: # Equality
     pass
   elif i[0] == 4: # Halt
