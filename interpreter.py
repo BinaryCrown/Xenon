@@ -92,6 +92,7 @@ def lexer(bincode):
     stopindex = 5
   else:
     # Get the arguments
+    farg = argscan(bincode, 5, opcode)
     if opcode in oio:
       stopindex = farg[1]
       lexres = [[int(opcode,2),farg[0]]]
@@ -148,7 +149,7 @@ for i in lexed:
     blockcount -= 1
 
 if blockcount != 0:
-  print(f"Syntax error: unbalanced instruction blocks; too many or not enough 10100's.")
+  print("Syntax error: unbalanced instruction blocks; too many or not enough 10100's.")
   sys.exit()
 
 for i in lexed:
@@ -187,7 +188,12 @@ def g2c(n): # Generate two's complement
     ab = bin(int(ab,2)+1)[2:]
     return ab
 
+Wreg = ""
+
 for i in lexed:
+  opcode = bin(i[0])[2:]
+  if len(opcode) < 5:
+    opcode = "0"*(5-len(opcode)) + opcode
   if i[0] == 0: # Addition
     isn = False
     addend = intstate[i[1]]
@@ -233,18 +239,53 @@ for i in lexed:
       comparor = "0"
     comparand = p2c(comparand)
     comparor = p2c(comparor)
-    bo = str(int(comparand > comparor))
+    bo = str(int(comparand <= comparor))
     intstate[i[3]] = bo
   elif i[0] == 3: # Equality
-    pass
+    if type(i[1]) is int:
+      comparand = intstate[i[1]]
+    else:
+      comparand = i[1]
+    if type(i[2]) is int:
+      comparor = intstate[i[2]]
+    else:
+      comparor = i[2]
+    bo = str(int(comparand != comparor))
+    intstate[i[3]] = bo
   elif i[0] == 4: # Halt
     break
   elif i[0] == 5: # If-else (meta!)
-    pass
+    if type(i[1]) is int:
+      comparand = intstate[i[1]]
+    else:
+      comparand = i[1]
+    Wreg = str(int("1" in comparand))
   elif i[0] == 6: # Get bit
-    pass
+    if type(i[2]) is int:
+      index = intstate[i[2]]
+    else:
+      index = i[2]
+    if index == "":
+      index = "0"
+    index = int(index,2)
+    try:
+      intstate[i[3]] = intstate[i[1]][index]
+    except:
+      print(f"Runtime error: list index {index} in operation {opcode} out of bounds.")
   elif i[0] == 7: # Shift register
-    pass
+    shifter = intstate[i[1]]
+    if type(i[2]) is int:
+      shifted = intstate[i[2]]
+    else:
+      shifted = i[2]
+    if shifted == "":
+      shifted = "0"
+    shifted = p2c(shifted)
+    if shifted < 0:
+      shifted = abs(shifted)
+      intstate[i[1]] = shifter[shifted:] + "0"*min(shifted, len(shifter))
+    elif shifted > 0:
+      intstate[i[1]] = "0"*min(shifted, len(shifter)) + shifter[:-shifted]
   elif i[0] == 8: # Set value
     pass
   elif i[0] == 9: # OR
