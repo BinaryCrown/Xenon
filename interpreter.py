@@ -2,8 +2,7 @@ import sys
 import sscfcmp
 
 # Get program
-inp = input("XEN file to run: ")
-fio = open(inp, "rt")
+fio = open(sys.argv[1], "rt")
 prog = fio.read()
 fio.close()
 # Convert into binary
@@ -192,6 +191,8 @@ def g2c(n): # Generate two's complement
 Wreg = ""
 queue = []
 qspace = 0
+eip = 0
+halted = False
 
 def intvar(n): # Interpret the variable using the global internal state
   global intstate
@@ -206,7 +207,8 @@ def prepfb(n,m): # Perform padding to prepare n, m for boolean operations
     return [n, "0"*(len(n) - len(m)) + m]
   return [n, m]
 
-for i in lexed:
+while eip < len(lexed):
+  i = lexed[eip]
   opcode = bin(i[0])[2:]
   if len(opcode) < 5:
     opcode = "0"*(5-len(opcode)) + opcode
@@ -245,6 +247,7 @@ for i in lexed:
     bo = str(int(comparand != comparor))
     intstate[i[3]] = bo
   elif i[0] == 4: # Halt
+    halted = True
     break
   elif i[0] == 5: # If-else (meta!)
     Wreg = str(int("1" in intvar(i[1])))
@@ -324,7 +327,10 @@ for i in lexed:
     pass
   elif i[0] == 22: # Jump-if-false
     pass
-  else: # Nop
-    continue
+  eip += 1
+
+if not halted:
+  while True:
+    pass
 
 print("Program halted.")
