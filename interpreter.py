@@ -19,7 +19,7 @@ for e in range(0,len(prog),2):
   n1 = bin(n1)[2:]
   n2 = bin(n2)[2:]
   if len(n1) < 4:
-    n1 = "0"*(4-len(n1)) + n1 # strings  can be multiplied?
+    n1 = "0"*(4-len(n1)) + n1
   if len(n2) < 4:
     n2 = "0"*(4-len(n2)) + n2
   bi.append(n1 + n2)
@@ -188,7 +188,23 @@ def g2c(n): # Generate two's complement
     ab = bin(int(ab,2)+1)[2:]
     return ab
 
+# Internal state of the program during execution
 Wreg = ""
+queue = []
+qspace = 0
+
+def intvar(n): # Interpret the variable using the global internal state
+  global intstate
+  if type(n) is int:
+    return intstate[n]
+  return n
+
+def prepfb(n,m): # Perform padding to prepare n, m for boolean operations
+  if len(n) < len(m):
+    return ["0"*(len(m) - len(n)) + n, m]
+  elif len(m) < len(n):
+    return [n, "0"*(len(n) - len(m)) + m]
+  return [n, m]
 
 for i in lexed:
   opcode = bin(i[0])[2:]
@@ -197,10 +213,7 @@ for i in lexed:
   if i[0] == 0: # Addition
     isn = False
     addend = intstate[i[1]]
-    if type(i[2]) is int:
-      summand = intstate[i[2]]
-    else:
-      summand = i[2]
+    summand = intvar(i[2])
     if summand == "" or addend == "":
       isn = True
     elif int(summand,2) == 0 or int(addend,2) == 0:
@@ -213,26 +226,11 @@ for i in lexed:
       res = g2c(addend + summand)
     intstate[i[1]] = res
   elif i[0] == 1: # AND
-    andend = intstate[i[1]]
-    if type(i[2]) is int:
-      andand = intstate[i[2]]
-    else:
-      andand = i[2]
-    if len(andend) < len(andand):
-      andend = "0"*(len(andand) - len(andend)) + andend
-    elif len(andand) < len(andend):
-      andand = "0"*(len(andend) - len(andand)) + andand
-    res = "".join("1" if x == "1" and y == "1" else "0" for x, y in zip(andand,andend))
-    intstate[i[1]] = res
+    A = prepfb(intstate[i[1]], intvar(i[2]))
+    intstate[i[1]] = "".join("1" if x == "1" and y == "1" else "0" for x, y in zip(A[0],A[1]))
   elif i[0] == 2: # Comparison
-    if type(i[1]) is int:
-      comparand = intstate[i[1]]
-    else:
-      comparand = i[1]
-    if type(i[2]) is int:
-      comparor = intstate[i[2]]
-    else:
-      comparor = i[2]
+    comparand = intvar(i[1])
+    comparor = intvar(i[2])
     if comparand == "":
       comparand = "0"
     if comparor == "":
@@ -242,29 +240,16 @@ for i in lexed:
     bo = str(int(comparand <= comparor))
     intstate[i[3]] = bo
   elif i[0] == 3: # Equality
-    if type(i[1]) is int:
-      comparand = intstate[i[1]]
-    else:
-      comparand = i[1]
-    if type(i[2]) is int:
-      comparor = intstate[i[2]]
-    else:
-      comparor = i[2]
+    comparand = intvar(i[1])
+    comparor = intvar(i[2])
     bo = str(int(comparand != comparor))
     intstate[i[3]] = bo
   elif i[0] == 4: # Halt
     break
   elif i[0] == 5: # If-else (meta!)
-    if type(i[1]) is int:
-      comparand = intstate[i[1]]
-    else:
-      comparand = i[1]
-    Wreg = str(int("1" in comparand))
+    Wreg = str(int("1" in intvar(i[1])))
   elif i[0] == 6: # Get bit
-    if type(i[2]) is int:
-      index = intstate[i[2]]
-    else:
-      index = i[2]
+    index = intvar(i[2])
     if index == "":
       index = "0"
     index = int(index,2)
@@ -272,12 +257,10 @@ for i in lexed:
       intstate[i[3]] = intstate[i[1]][index]
     except:
       print(f"Runtime error: list index {index} in operation {opcode} out of bounds.")
+      sys.exit()
   elif i[0] == 7: # Shift register
     shifter = intstate[i[1]]
-    if type(i[2]) is int:
-      shifted = intstate[i[2]]
-    else:
-      shifted = i[2]
+    shifted = intvar(i[2])
     if shifted == "":
       shifted = "0"
     shifted = p2c(shifted)
@@ -287,25 +270,50 @@ for i in lexed:
     elif shifted > 0:
       intstate[i[1]] = "0"*min(shifted, len(shifter)) + shifter[:-shifted]
   elif i[0] == 8: # Set value
-    pass
+    intstate[i[1]] = intvar(i[2])
   elif i[0] == 9: # OR
-    pass
+    A = prepfb(intstate[i[1]], intvar(i[2]))
+    intstate[i[1]] = "".join("1" if x == "1" or y == "1" else "0" for x, y in zip(A[0],A[1]))
   elif i[0] == 10: # Enqueue
-    pass
+    if qspace == 0:
+      print(f"Runtime error: not enough space remaining on queue for {intvar(i[1])} to be enqueued by operation {opcode}.")
+      sys.exit()
+    queue.append(intvar(i[1]))
+    qspace -= 1
   elif i[0] == 11: # Dequeue
-    pass
+    intstate[i[1]] = queue[0]
+    queue = queue[1:]
   elif i[0] == 12: # Allocate
-    pass
+    qspace += intvar(i[1])
   elif i[0] == 13: # Full pop
-    pass
+    for n in range(len(queue)):
+      intstate[n] = queue[n]
   elif i[0] == 14: # XOR
-    pass
+    A = prepfb(intstate[i[1]], intvar(i[2]))
+    intstate[i[1]] = "".join("1" if (x == "1" or y == "1") and not (x == "1" and y == "1") else "0" for x, y in zip(A[0],A[1]))
   elif i[0] == 15: # Get length
-    pass
+    res = intvar(i[2])
+    while len(res) > 0:
+      if res[0] == "0": res = res[1:]
+      else: break
+    intstate[i[1]] = len(res)
   elif i[0] == 16: # Get user input
-    pass
+    inp = input("")
+    if inp != "":
+      try:
+        _ = int(inp,2)
+      except:
+        inp = inp.encode("utf-8").hex()
+        s = []
+        for e in range(0,len(inp)):
+          n = bin(int(inp[e],16))[2:]
+          if len(n) < 4:
+            n = "0"*(4-len(n)) + n
+          s.append(n)
+        inp = "".join(s)
+    intstate[i[1]] = inp
   elif i[0] == 17: # Print out
-    pass
+    print(intstate[i[1]])
   elif i[0] == 18: # Jump to block
     pass
   elif i[0] == 19: # Start instruction block
