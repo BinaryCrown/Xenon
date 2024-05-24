@@ -188,11 +188,14 @@ def g2c(n): # Generate two's complement
     return ab
 
 # Internal state of the program during execution
-Wreg = ""
-queue = []
-qspace = 0
-eip = 0
-halted = False
+Wreg = "" # W register
+queue = [] # Queue
+qspace = 0 # Queue space
+eip = 0 # Instruction pointer
+halted = False # Have we halted?
+
+tret = False # Will we return when we hit a 10100?
+returns = [] # Return stack
 
 def intvar(n): # Interpret the variable using the global internal state
   global intstate
@@ -207,8 +210,34 @@ def prepfb(n,m): # Perform padding to prepare n, m for boolean operations
     return [n, "0"*(len(n) - len(m)) + m]
   return [n, m]
 
+def jump(name):
+  global eip, lexed, returns, tret
+  # Find the return address
+  address = eip+1
+  if lexed[address][0] == 19:
+    layers = 1
+    while layers > 0:
+      if address >= len(lexed):
+        address = 0
+      if lexed[address][0] == 20 and lexed[address+1][0] != 19:
+        layers -= 1
+      address += 1
+  returns.append(address)
+  tret = True
+  # Find the address to jump to
+  address = eip+1
+  found = False
+  while not found:
+    address += 1
+    if address >= len(lexed):
+      address = 0
+    if lexed[address][0] == 19 and lexed[address][1] == name:
+      found = True
+  eip = address-1
+
 while eip < len(lexed):
   i = lexed[eip]
+  print(i)
   opcode = bin(i[0])[2:]
   if len(opcode) < 5:
     opcode = "0"*(5-len(opcode)) + opcode
@@ -318,15 +347,19 @@ while eip < len(lexed):
   elif i[0] == 17: # Print out
     print(intstate[i[1]])
   elif i[0] == 18: # Jump to block
-    pass
+    jump(i[1])
   elif i[0] == 19: # Start instruction block
-    pass
+    tret = False
   elif i[0] == 20: # End instruction block
-    pass
+    if tret:
+      eip = returns[-1]
+      returns = returns[:-1]
   elif i[0] == 21: # Jump-if-true
-    pass
+    if "1" not in Wreg:
+      jump(i[1])
   elif i[0] == 22: # Jump-if-false
-    pass
+    if "1" in Wreg:
+      jump(i[1])
   eip += 1
 
 if not halted:
